@@ -54,6 +54,6 @@ jobs:
           cd deploy-repo
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add cicd-new-deploy/deployment.yaml
+          git add azure-cicd-deploy/deployment.yaml
           git commit -m "ci: update image to ${{ github.sha }}" || echo "No changes to commit"
           git push
