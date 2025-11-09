@@ -10,40 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout the source code repository
       - name: Checkout source repo
         uses: actions/checkout@v4
 
-      - name: Set lowercase image name
-        id: vars
-        run: |
-          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Log in to GitHub Container Registry
+      # 2️⃣ Log in to Docker Hub using your secrets
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 3️⃣ Build and push Docker image to Docker Hub
       - name: Build and push Docker image
         run: |
-          IMAGE_NAME=ghcr.io/${{ env.owner_lower }}/aks-demo:${{ github.sha }}
+          IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/aks-demo:${{ github.sha }}
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
+      # 4️⃣ Checkout the deployment repository
       - name: Checkout deploy repo
         uses: actions/checkout@v4
         with:
           repository: BSK-CHN/azure-cicd-deploy
           token: ${{ secrets.DEPLOY_REPO_TOKEN }}
 
+      # 5️⃣ Update image tag in deployment.yaml and push changes
       - name: Update image in deployment.yaml
         run: |
-          IMAGE_NAME=ghcr.io/${{ env.owner_lower }}/aks-demo:${{ github.sha }}
+          IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/aks-demo:${{ github.sha }}
           sed -i "s|image: .*|image: $IMAGE_NAME|" deployment.yaml
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add deployment.yaml
           git commit -m "ci: update image to ${{ github.sha }}" || echo "No changes to commit"
           git push
-
